@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TOME — Baroque Scrollwork</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1rem;
+      font-family: -apple-system, sans-serif;
+      color: #fff;
+    }
+    h1 { font-size: 0.8rem; letter-spacing: 0.3em; color: #555; text-transform: uppercase; }
+    canvas { border-radius: 8px; }
+  </style>
+</head>
+<body>
+<h1>TOME — Baroque Scrollwork</h1>
+<canvas id="c" width="400" height="600" style="width:267px;height:400px;"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 400, H = 600;
+
+// Black background with white border
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, W, H);
+ctx.fillStyle = '#000000';
+ctx.fillRect(14, 14, W-28, H-28);
+
+// Inner border
+ctx.strokeStyle = '#ffffff';
+ctx.lineWidth = 1.5;
+ctx.strokeRect(20, 20, W-40, H-40);
+ctx.lineWidth = 0.5;
+ctx.strokeRect(25, 25, W-50, H-50);
+
+// ── Core acanthus scroll ──
+// This creates the dense repeating baroque pattern
+// Each "unit" is an acanthus leaf curl that fills the space
+
+function acanthusLeaf(ctx, x, y, angle, size, curl) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  const c = curl || 0.5;
+  const s = size;
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.9;
+
+  // Main leaf body — wide baroque acanthus shape
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(-s*c, -s*0.3, -s*(c+0.15), -s*0.7, -s*0.1, -s*0.95);
+  ctx.bezierCurveTo(s*0.1, -s*1.05, s*0.25, -s*0.9, s*0.2, -s*0.7);
+  ctx.bezierCurveTo(s*0.15, -s*0.5, s*0.05, -s*0.35, 0, 0);
+  ctx.stroke();
+
+  // Outer lobe
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.1, -s*0.95);
+  ctx.bezierCurveTo(-s*0.3, -s*1.1, -s*0.5, -s*1.0, -s*0.45, -s*0.8);
+  ctx.bezierCurveTo(-s*0.4, -s*0.65, -s*0.2, -s*0.6, -s*0.1, -s*0.7);
+  ctx.stroke();
+
+  // Inner curl
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(0, -s*0.2);
+  ctx.bezierCurveTo(s*0.15, -s*0.35, s*0.3, -s*0.25, s*0.25, -s*0.1);
+  ctx.bezierCurveTo(s*0.2, 0, s*0.08, 0.05, 0, 0);
+  ctx.stroke();
+
+  // Side lobes
+  ctx.lineWidth = 0.55;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.2, -s*0.45);
+  ctx.bezierCurveTo(-s*0.4, -s*0.5, -s*0.5, -s*0.35, -s*0.38, -s*0.25);
+  ctx.bezierCurveTo(-s*0.28, -s*0.18, -s*0.15, -s*0.22, -s*0.15, -s*0.35);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-s*0.15, -s*0.65);
+  ctx.bezierCurveTo(-s*0.35, -s*0.72, -s*0.42, -s*0.55, -s*0.3, -s*0.46);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── Repeating scroll unit — S-curve with paired acanthus leaves ──
+function scrollUnit(x, y, angle, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  // S-curve stem
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -size*0.5);
+  ctx.bezierCurveTo(size*0.4, -size*0.3, size*0.4, size*0.3, 0, size*0.5);
+  ctx.stroke();
+
+  // Leaves on each side
+  acanthusLeaf(ctx, size*0.15, -size*0.1, -0.4, size*0.55);
+  acanthusLeaf(ctx, -size*0.15, size*0.1, Math.PI+0.4, size*0.55);
+
+  ctx.restore();
+}
+
+// ── Full tiling pattern ──
+// Dense grid of scrolls filling the card
+
+const tileW = 48;
+const tileH = 48;
+const margin = 28;
+
+for (let row = 0; row * tileH < H - margin * 1.5; row++) {
+  for (let col = 0; col * tileW < W - margin * 1.5; col++) {
+    const x = margin + col * tileW + (row % 2 === 0 ? 0 : tileW * 0.5);
+    const y = margin + row * tileH;
+
+    if (x < margin - 4 || x > W - margin + 4) continue;
+    if (y < margin - 4 || y > H - margin + 4) continue;
+
+    // Skip center area for TOME
+    const dx = x - W/2, dy = y - H/2;
+    if (Math.abs(dx) < 85 && Math.abs(dy) < 85) continue;
+
+    const angle = (row + col) % 2 === 0 ? 0 : Math.PI / 2;
+    scrollUnit(x, y, angle, tileW * 0.9);
+  }
+}
+
+// ── Additional filling scrolls ──
+// Extra curls to fill gaps
+function fillCurl(x, y, angle, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.8;
+
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(size*0.5, -size*0.1, size*0.6, size*0.4, size*0.2, size*0.6);
+  ctx.bezierCurveTo(-size*0.1, size*0.7, -size*0.3, size*0.5, -size*0.2, size*0.3);
+  ctx.bezierCurveTo(-size*0.1, size*0.1, size*0.1, 0, 0, 0);
+  ctx.stroke();
+
+  // Small leaf tip
+  acanthusLeaf(ctx, size*0.2, size*0.6, 2.8, size*0.35);
+  acanthusLeaf(ctx, -size*0.2, size*0.3, -2.5, size*0.3);
+  ctx.restore();
+}
+
+// Fill corners more densely
+[[margin+10, margin+10, -0.3],
+ [W-margin-10, margin+10, 0.3+Math.PI/2],
+ [margin+10, H-margin-10, -0.3-Math.PI/2],
+ [W-margin-10, H-margin-10, 0.3+Math.PI]
+].forEach(([x,y,a]) => {
+  fillCurl(x, y, a, 22);
+  fillCurl(x+10, y-8, a+0.5, 16);
+});
+
+// ── Extra dense layer — small curls everywhere ──
+for (let row = 0; row * 24 < H - margin; row++) {
+  for (let col = 0; col * 24 < W - margin; col++) {
+    const x = margin + 12 + col * 24 + (row%2)*12;
+    const y = margin + 12 + row * 24;
+    if (x < margin || x > W-margin || y < margin || y > H-margin) continue;
+    const dx = x-W/2, dy = y-H/2;
+    if (Math.abs(dx) < 88 && Math.abs(dy) < 88) continue;
+
+    // Very small connecting leaf
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.5;
+    const a = ((row*3+col*5) % 8) * Math.PI/4;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x+Math.cos(a)*8, y+Math.sin(a)*8,
+                      x+Math.cos(a+0.5)*12, y+Math.sin(a+0.5)*12,
+                      x+Math.cos(a+0.2)*14, y+Math.sin(a+0.2)*14);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ══════════════════════════════════
+// CENTER DIAMOND WITH TOME
+// ══════════════════════════════════
+const cx = W/2, cy = H/2;
+
+// Diamond — tall enough to hold TOME with good margins
+const dH = 72; // half-height of diamond
+const dW = 46; // half-width
+
+ctx.strokeStyle = '#ffffff';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(cx, cy-dH);
+ctx.lineTo(cx+dW, cy);
+ctx.lineTo(cx, cy+dH);
+ctx.lineTo(cx-dW, cy);
+ctx.closePath();
+ctx.stroke();
+
+// Inner diamond
+ctx.lineWidth = 0.8;
+ctx.beginPath();
+ctx.moveTo(cx, cy-dH+8);
+ctx.lineTo(cx+dW-8, cy);
+ctx.lineTo(cx, cy+dH-8);
+ctx.lineTo(cx-dW+8, cy);
+ctx.closePath();
+ctx.stroke();
+
+// Flourishes at diamond points
+[[cx, cy-dH, -Math.PI/2],
+ [cx+dW, cy, 0],
+ [cx, cy+dH, Math.PI/2],
+ [cx-dW, cy, Math.PI]
+].forEach(([x,y,a]) => {
+  acanthusLeaf(ctx, x, y, a, 12, 0.4);
+});
+
+// TOME vertical — sized to fill diamond with comfortable margins
+const letters = ['T','O','M','E'];
+const fontSize = 20;
+const sp = (dH * 2 - 28) / letters.length; // evenly divide inner height
+const startY = cy - (letters.length - 1) * sp / 2;
+
+ctx.fillStyle = '#ffffff';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.font = `bold ${fontSize}px Georgia, serif`;
+letters.forEach((l, i) => {
+  ctx.fillText(l, cx, startY + i * sp);
+});
+
+// Dot above T and below E
+ctx.fillStyle = '#ffffff';
+[[cx, startY - sp*0.55], [cx, startY + letters.length*sp - sp*0.45]].forEach(([x,y]) => {
+  ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+});
+</script>
+</body>
+</html>
